@@ -3,11 +3,15 @@
 class ColdChipMath {
 	
 	public function Addition($a, $b){
+		$this->aSize = strlen($a);
+		$this->bSize = strlen($b);
+		$this->aArray = str_split($a);
+		$this->bArray = str_split($a);
 		return gmp_add($a, $b);
 	}
 	
-	public function PowerMod($a, $b){
-		return gmp_powm($a, $b);
+	public function PowerMod($a, $b, $c){
+		return gmp_powm($a, $b, $c);
 	}
 	
 	public function Multiply($a, $b){
@@ -49,9 +53,9 @@ class RSA extends ColdChipMath {
 	function encryptdecrypt($msg, $data)
 	{
 		$data = base64_decode($data);
-		$exp = json_decode($data, true)["exp"];
-		$mod = json_decode($data, true)["mod"];
-		return PowerMod($msg, $exp, $mod);
+		$exp = base64_decode(json_decode($data, true)["exp"]);
+		$mod = base64_decode(json_decode($data, true)["mod"]);
+		return $this->PowerMod($msg, $exp, $mod);
 	}
 	
 	function generateKeys($insize)
@@ -76,16 +80,17 @@ class RSA extends ColdChipMath {
 		
 		
 		echo("RSA KEY BIT SIZE: " . $insize . "<br>");
-		echo('<textarea style="width: 500px; height: 100px;">' . $publicKey . "</textarea><br>");
-		echo('<textarea style="width: 500px; height: 100px;">' . $privateKey . "</textarea><br>");
+		echo('<textarea style="width: 500px; height: 100px;">' . $this->publicKey . "</textarea><br>");
+		echo('<textarea style="width: 500px; height: 100px;">' . $this->privateKey . "</textarea><br>");
 	}
 	
 	function rsabase64encode($exponent, $modulus)
 	{
-		$packer = array();
-		$packer["exp"] = strval($exponent);
-		$packer["mod"] = strval($modulus);
-		return base64_encode(json_encode($packer));
+		$this->packer = array();
+		$this->packer["exp"] = base64_encode($exponent);
+		$this->packer["mod"] = base64_encode($modulus);
+		$this->packer["sign"] = hash("SHA512", $exponent . $modulus);
+		return base64_encode(json_encode($this->packer));
 	}
 	
 	function genPrivateKey($exponent, $p_n)
@@ -120,10 +125,10 @@ echo($rsa->generateKeys(1024));
 
 /*
 
-$encryptKey = "eyJleHAiOiI2NTUzNyIsIm1vZCI6IjE0MjcyNzk3OTEzNDczNjA0NzI2NjQ3OTkzMzMxMDQ2OTQ2NTMyOTA4NzczMzI2NDA5MTY4NTAwODk3NTYxOTcyODM4MDY0NzI1NTA1NDQ4NjE2MjI5NzY4OTAwOTUxMTgwODI3MjU0MTAyMjgwODYxMjI3ODQ4Mzc3NzE1MzQ3MTc4NzMyOTk1MzEzODkxOTc5NTEzOTg1NTQ2NDU3OTI2Njk4NjE4NzQxMDA4NTYyMDk4NDAyNDExMjg3MjQ2MDA5MTIyNjEyMTY5MzQ4MDk2MjE2OTkwNDIzNDcwNjUyNTQxMDYyNjA0NTAxOTAzMDgxMDM1OTYxMjk1Nzg1MDUwNzk3Nzk4NTEyMTc2NDQwMDE4OTA1ODA1MTIxNzgwNzExMDYwNTA0NjE3ODcyMDM0MTM1MDEifQ==";
-$decryptKey = "eyJleHAiOiIxMTc2NDE2MzcxOTU3ODUxNTY0OTU0MjU2ODM3NzUwNDIxODM0NzExMTgwMTIzNTExODY0MjM1NTk0MzczNDExNDI5ODI4MzExMjQ3NjIwOTIxNTQyNzkyMDk2ODE3OTUxNTE3MzUxNDM4MjY2OTQ0NzIxMDA2MzIyNjM4MjQ2NTIzMTg2NTk1MjY4MTE2OTY3NDM3MzA0ODM3Mjc3MDA3NDc2OTQ1ODEzNTIxNDgzMjk1NzY1MTc0OTI2NTU3NDA3MjkyMTA4OTQwOTgwMTQ5MTA1MDc0NjA4Njc3MDI5ODc0NDc3MzAyOTY3NDYyNzAyNDUwNTEyMDE5NjkzNTg3NDk2NDcwNTM2NDI5ODUxNjU3MjM3MDQ3ODAzNTk0MTUyNjg5NzgwMTg2NjQ3MjE1NDk4NTYxIiwibW9kIjoiMTQyNzI3OTc5MTM0NzM2MDQ3MjY2NDc5OTMzMzEwNDY5NDY1MzI5MDg3NzMzMjY0MDkxNjg1MDA4OTc1NjE5NzI4MzgwNjQ3MjU1MDU0NDg2MTYyMjk3Njg5MDA5NTExODA4MjcyNTQxMDIyODA4NjEyMjc4NDgzNzc3MTUzNDcxNzg3MzI5OTUzMTM4OTE5Nzk1MTM5ODU1NDY0NTc5MjY2OTg2MTg3NDEwMDg1NjIwOTg0MDI0MTEyODcyNDYwMDkxMjI2MTIxNjkzNDgwOTYyMTY5OTA0MjM0NzA2NTI1NDEwNjI2MDQ1MDE5MDMwODEwMzU5NjEyOTU3ODUwNTA3OTc3OTg1MTIxNzY0NDAwMTg5MDU4MDUxMjE3ODA3MTEwNjA1MDQ2MTc4NzIwMzQxMzUwMSJ9==";
+$encryptKey = "eyJleHAiOiJOalUxTXpjPSIsIm1vZCI6Ik9Ea3dOamczTkRJeE9UYzVORE14TnprMk1qZzJPRGs0TmpZMk5URTFORFUyTWpFeU5qYzJPVEEyT0RBd05qazVNalF5TnpFeU1qazJNek0zTkRNM05UUTJOelV5T1RVd09ETTFNakk1T1RVM09UVTFOek14TVRBd01qYzBOakUyTVRjMU56VXhNVFUxTkRRME1ETTVPREl6TnpRMk9ERXdOell3T0RNeE56VTVOalV6TXpnek5ERTROekEyTXpBNE1EUTJOVEF5TmprNE9EVTFNRFkzT0RJd01EZ3dPREF3TWpRNU5UQXlOekkwT0RBd01EZ3hOakF6TXpVMU9UWXpNalV3T1RVNE16TTVPRE14TnpJMU5UTTROemM1TWpFd01qRXpOREl4Tnpnd056UXlOamcwTVRnd09UTTJPREk0T0RnM09UQTVNRFF4TnpRNU9EVTVPVEV6TnpZME5UZ3dORGMxTkRnMU5EY3lOak15TlRrMU5UUXpOelkzTXpNd016TTBNVE16TkRRM05qUTVNekU0T0RBNE56STUiLCJzaWduIjoiMTUwM2QxNTk5Y2VjMDBkMDU2ODBiOWFlYzMzN2ZjOWZhYTNhM2I5NWFmNTQ3ZTU4NjBhOTllY2FjYWY5YzU2NzMxY2I4ZTFlYWJjNTNhZDdmZTI1ZjQ3NWJlNWI4OWJlMmViZjhmYmFhZTIzYWI0MjljMjRkZjJiOWEwYjJlNDQifQ====";
+$decryptKey = "eyJleHAiOiJNamt6TlRVM01EUTRPVEUxTWpBME1ETTBNelU1TVRjeE16STJNRGN4TWpnMU56UTVPVFF3TURVeE9UZzBNekF3TlRJM01EWTVPVGcwT1RBM05UZzRPRFU0TXpVeU56UXpNekExT1RNek5UVXdNemc0T1RrNE5EVTFNekUwTWpjMk1EUTROVGcyTmpjMU5UZ3hOVGs1TURrNU5qTTNNekl4TURreU5ESXdOVFUyTkRVMk9EVTNOamd4TURZMk5URTFPVEU1TXpFNU56UTNOVE13TlRrNE5ETTFNek16TnpFNE16QXpORGcxTURJeU56WTVPREEzT1RReU1qRTVPRGsxTVRBd01UazJOVEE1TURZek1ESXlNalkxTXpFM05qa3dPRE0yTlRnNU16ZzJNRGd5TkRVMU5qUXlOVFk0TmpjM09ETTNNelEyTmpBME56WTJNekUwTnpBM09ETTBOalExTmpjeE56QTBOakV5TlRFNE16a3hOalkxTURBM05URXlNRGsyT1RZNE5qa3hNVFl4T0RBeU9EY3dNamN6IiwibW9kIjoiT0Rrd05qZzNOREl4T1RjNU5ETXhOemsyTWpnMk9EazROalkyTlRFMU5EVTJNakV5TmpjMk9UQTJPREF3TmprNU1qUXlOekV5TWprMk16TTNORE0zTlRRMk56VXlPVFV3T0RNMU1qSTVPVFUzT1RVMU56TXhNVEF3TWpjME5qRTJNVGMxTnpVeE1UVTFORFEwTURNNU9ESXpOelEyT0RFd056WXdPRE14TnpVNU5qVXpNemd6TkRFNE56QTJNekE0TURRMk5UQXlOams0T0RVMU1EWTNPREl3TURnd09EQXdNalE1TlRBeU56STBPREF3TURneE5qQXpNelUxT1RZek1qVXdPVFU0TXpNNU9ETXhOekkxTlRNNE56YzVNakV3TWpFek5ESXhOemd3TnpReU5qZzBNVGd3T1RNMk9ESTRPRGczT1RBNU1EUXhOelE1T0RVNU9URXpOelkwTlRnd05EYzFORGcxTkRjeU5qTXlOVGsxTlRRek56WTNNek13TXpNME1UTXpORFEzTmpRNU16RTRPREE0TnpJNSIsInNpZ24iOiJjMGE0MmRhNTkxZDg3YTNmYThkYmIxMDYwYzg1MjgzOTczNDYxNGZlMTQyOThjYzI2MjI2OTFjOTc1ODhmYTkxNjVhMWM1MDEyODJhMDQ4ZjJlYjIwMDk4ZDNiYTY3OTZiZWQ1NDEzNWE3MzYyNGI1YTI5NTNiYWU0ODE2NDY2ZiJ9==";
 
-$msg = "178786654345567567675666563454565767868543423567687687980980876543";
+$msg = "1234567890";
 
 echo("Message: " . $msg . "<br>");
 
@@ -137,4 +142,3 @@ echo("decrypted_message: " . $rsa->encryptdecrypt($enc, $decryptKey));
 */
 
 ?>
-
