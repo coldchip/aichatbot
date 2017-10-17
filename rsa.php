@@ -321,7 +321,7 @@ function genkeys()
 </head>
 <body>
 <div class="header">
-<p class="text" style="float: left; margin-left: 20px; font-size: 20px; font-weight: 300; margin-top: 12px;">ColdChip Translate</p>
+<p class="text" style="float: left; margin-left: 20px; font-size: 20px; font-weight: 300; margin-top: 12px;">ColdChip RSA</p>
 </div>
 <div class="content">
 <textarea class="textarea" placeholder="Public Key. " id="pubkey"></textarea>
