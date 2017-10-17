@@ -3,10 +3,6 @@
 class ColdChipMath {
 	
 	public function Addition($a, $b){
-		$this->aSize = strlen($a);
-		$this->bSize = strlen($b);
-		$this->aArray = str_split($a);
-		$this->bArray = str_split($a);
 		return gmp_add($a, $b);
 	}
 	
@@ -38,8 +34,8 @@ class ColdChipMath {
 
 class RSA extends ColdChipMath {
 	
-	private $publicKey;
-	private $privateKey;
+	public $publicKey;
+	public $privateKey;
 	
 	private $defaultExponent = 65537;
 	
@@ -50,66 +46,102 @@ class RSA extends ColdChipMath {
 		}
 	}
 	
-	function encryptdecrypt($msg, $data)
+	private function textDec($text)
 	{
-		$data = base64_decode($data);
-		$exp = base64_decode(json_decode($data, true)["exp"]);
-		$mod = base64_decode(json_decode($data, true)["mod"]);
-		return $this->PowerMod($msg, $exp, $mod);
+		$result = '0';
+		$n = strlen($text);
+		do {
+			$result = bcadd(gmp_mul($result, '256'), ord($text{--$n}));
+		} while ($n > 0);
+		return $result;
 	}
 	
-	function generateKeys($insize)
+	private function decText($num)
+	{
+		$result = '';
+		do {
+			$result .= chr(bcmod($num, '256'));
+			$num = bcdiv($num, '256');
+		} while (bccomp($num, '0'));
+		return $result;
+	}
+	
+	function Encrypt($msg, $data)
+	{
+		$this->data = base64_decode($data);
+		$this->exp = base64_decode(json_decode($this->data, true)["exp"]);
+		$this->mod = base64_decode(json_decode($this->data, true)["mod"]);
+		$this->encryptData = array();
+		$this->encryptData["msg"] = $msg;
+		$this->encryptData["nounce"] = hash("crc32", rand(100000, 999999));
+		$this->encodedMsg = $this->textDec(json_encode($this->encryptData));
+		$this->encryptedData = $this->PowerMod($this->encodedMsg, $this->exp, $this->mod);
+		return base64_encode($this->encryptedData);
+	}
+	
+	function Decrypt($encryptedMsg, $data)
+	{
+		$this->data = base64_decode($data);
+		$this->exp = base64_decode(json_decode($this->data, true)["exp"]);
+		$this->mod = base64_decode(json_decode($this->data, true)["mod"]);
+		$this->decryptedMsg = $this->PowerMod(base64_decode($encryptedMsg), $this->exp, $this->mod);
+		$this->decodedMsg = json_decode($this->decText($this->decryptedMsg), true);
+		return $this->decodedMsg["msg"];
+		
+	}
+	
+	function generateKeys($bitLen)
 	{	
-		$size = ceil((($insize/2)/8)*2.421875);
-		for($i = 0; $i < $size; $i++)
+		$this->size = ceil((($bitLen/2)/8)*2.421875);
+		for($i = 0; $i < $this->size; $i++)
 		{
-			$randp .= mt_rand(1, 9);
-			$randq .= mt_rand(1, 9);
+			$this->randp .= mt_rand(1, 9);
+			$this->randq .= mt_rand(1, 9);
 		}
 
-		$p = gmp_nextprime($randp);
-		$q = gmp_nextprime($randq);
+		$this->p = gmp_nextprime($this->randp);
+		$this->q = gmp_nextprime($this->randq);
 		
-		$n = $this->Multiply($p, $q);
-		$phi_n = $this->Multiply($this->Subtract($p, 1), $this->Subtract($q, 1));
+		$this->n = $this->Multiply($this->p, $this->q);
+		$this->phi_n = $this->Multiply($this->Subtract($this->p, 1), $this->Subtract($this->q, 1));
 		
-		$d = $this->genPrivateKey($this->defaultExponent, $phi_n);
+		$this->d = $this->genPrivateKey($this->defaultExponent, $this->phi_n);
 		
-		$this->publicKey =  $this->rsabase64encode($this->defaultExponent, $n);
-		$this->privateKey = $this->rsabase64encode($d, $n);
+		$this->publicKey =  $this->rsabase64encode($this->defaultExponent, $this->n);
+		$this->privateKey = $this->rsabase64encode($this->d, $this->n);
 		
+		return true;
 		
-		echo("RSA KEY BIT SIZE: " . $insize . "<br>");
-		echo('<textarea style="width: 500px; height: 100px;">' . $this->publicKey . "</textarea><br>");
-		echo('<textarea style="width: 500px; height: 100px;">' . $this->privateKey . "</textarea><br>");
 	}
 	
 	function rsabase64encode($exponent, $modulus)
 	{
 		$this->packer = array();
+		$this->packer["type"] = "COLDCHIPRSA";
+		$this->packer["version"] = "1.2";
 		$this->packer["exp"] = base64_encode($exponent);
 		$this->packer["mod"] = base64_encode($modulus);
 		$this->packer["sign"] = hash("SHA512", $exponent . $modulus);
 		return base64_encode(json_encode($this->packer));
 	}
 	
-	function genPrivateKey($exponent, $p_n)
+	function genPrivateKey($exponent, $phi_n)
 	{
 		$x = 1;
 		$y = 0;
-		$e = $exponent;
-		$phi_n = $p_n;
+		$this->Exponent = $exponent;
+		$this->Phi_n = $phi_n;
 		do {
-			$tmp = $this->Modulus($e, $phi_n);
-			$q = $this->Divide($e, $phi_n);
-			$e = $phi_n;
-			$phi_n = $tmp;
+			$tmp = $this->Modulus($this->Exponent, $this->Phi_n);
+			$q = $this->Divide($this->Exponent, $this->Phi_n);
+			$this->Exponent = $this->Phi_n;
+			$this->Phi_n = $tmp;
 			$tmp = $this->Subtract($x, $this->Multiply($y, $q));
 			$x = $y;
 			$y = $tmp;
-		} while ($this->Compare($phi_n, '0') !== 0);
-		if (bccomp($x, '0') < 0) {
-			$x = $this->Addition($x, $p_n);
+		} while ($this->Compare($this->Phi_n, '0') !== 0);
+		if ($this->Compare($x, '0') < 0) {
+			$x = $this->Addition($x, $phi_n);
 		}
 
 		return $x;
@@ -121,23 +153,29 @@ class RSA extends ColdChipMath {
 $rsa = new RSA();
 
 
-echo($rsa->generateKeys(1024));
+$rsa->generateKeys(128);
+
+echo('<textarea style="width: 500px; height: 100px;">' . $rsa->publicKey . "</textarea><br>");
+echo('<textarea style="width: 500px; height: 100px;">' . $rsa->privateKey . "</textarea><br>");
+
+
+// BIT: 7250
 
 /*
 
-$encryptKey = "eyJleHAiOiJOalUxTXpjPSIsIm1vZCI6Ik9Ea3dOamczTkRJeE9UYzVORE14TnprMk1qZzJPRGs0TmpZMk5URTFORFUyTWpFeU5qYzJPVEEyT0RBd05qazVNalF5TnpFeU1qazJNek0zTkRNM05UUTJOelV5T1RVd09ETTFNakk1T1RVM09UVTFOek14TVRBd01qYzBOakUyTVRjMU56VXhNVFUxTkRRME1ETTVPREl6TnpRMk9ERXdOell3T0RNeE56VTVOalV6TXpnek5ERTROekEyTXpBNE1EUTJOVEF5TmprNE9EVTFNRFkzT0RJd01EZ3dPREF3TWpRNU5UQXlOekkwT0RBd01EZ3hOakF6TXpVMU9UWXpNalV3T1RVNE16TTVPRE14TnpJMU5UTTROemM1TWpFd01qRXpOREl4Tnpnd056UXlOamcwTVRnd09UTTJPREk0T0RnM09UQTVNRFF4TnpRNU9EVTVPVEV6TnpZME5UZ3dORGMxTkRnMU5EY3lOak15TlRrMU5UUXpOelkzTXpNd016TTBNVE16TkRRM05qUTVNekU0T0RBNE56STUiLCJzaWduIjoiMTUwM2QxNTk5Y2VjMDBkMDU2ODBiOWFlYzMzN2ZjOWZhYTNhM2I5NWFmNTQ3ZTU4NjBhOTllY2FjYWY5YzU2NzMxY2I4ZTFlYWJjNTNhZDdmZTI1ZjQ3NWJlNWI4OWJlMmViZjhmYmFhZTIzYWI0MjljMjRkZjJiOWEwYjJlNDQifQ====";
-$decryptKey = "eyJleHAiOiJNamt6TlRVM01EUTRPVEUxTWpBME1ETTBNelU1TVRjeE16STJNRGN4TWpnMU56UTVPVFF3TURVeE9UZzBNekF3TlRJM01EWTVPVGcwT1RBM05UZzRPRFU0TXpVeU56UXpNekExT1RNek5UVXdNemc0T1RrNE5EVTFNekUwTWpjMk1EUTROVGcyTmpjMU5UZ3hOVGs1TURrNU5qTTNNekl4TURreU5ESXdOVFUyTkRVMk9EVTNOamd4TURZMk5URTFPVEU1TXpFNU56UTNOVE13TlRrNE5ETTFNek16TnpFNE16QXpORGcxTURJeU56WTVPREEzT1RReU1qRTVPRGsxTVRBd01UazJOVEE1TURZek1ESXlNalkxTXpFM05qa3dPRE0yTlRnNU16ZzJNRGd5TkRVMU5qUXlOVFk0TmpjM09ETTNNelEyTmpBME56WTJNekUwTnpBM09ETTBOalExTmpjeE56QTBOakV5TlRFNE16a3hOalkxTURBM05URXlNRGsyT1RZNE5qa3hNVFl4T0RBeU9EY3dNamN6IiwibW9kIjoiT0Rrd05qZzNOREl4T1RjNU5ETXhOemsyTWpnMk9EazROalkyTlRFMU5EVTJNakV5TmpjMk9UQTJPREF3TmprNU1qUXlOekV5TWprMk16TTNORE0zTlRRMk56VXlPVFV3T0RNMU1qSTVPVFUzT1RVMU56TXhNVEF3TWpjME5qRTJNVGMxTnpVeE1UVTFORFEwTURNNU9ESXpOelEyT0RFd056WXdPRE14TnpVNU5qVXpNemd6TkRFNE56QTJNekE0TURRMk5UQXlOams0T0RVMU1EWTNPREl3TURnd09EQXdNalE1TlRBeU56STBPREF3TURneE5qQXpNelUxT1RZek1qVXdPVFU0TXpNNU9ETXhOekkxTlRNNE56YzVNakV3TWpFek5ESXhOemd3TnpReU5qZzBNVGd3T1RNMk9ESTRPRGczT1RBNU1EUXhOelE1T0RVNU9URXpOelkwTlRnd05EYzFORGcxTkRjeU5qTXlOVGsxTlRRek56WTNNek13TXpNME1UTXpORFEzTmpRNU16RTRPREE0TnpJNSIsInNpZ24iOiJjMGE0MmRhNTkxZDg3YTNmYThkYmIxMDYwYzg1MjgzOTczNDYxNGZlMTQyOThjYzI2MjI2OTFjOTc1ODhmYTkxNjVhMWM1MDEyODJhMDQ4ZjJlYjIwMDk4ZDNiYTY3OTZiZWQ1NDEzNWE3MzYyNGI1YTI5NTNiYWU0ODE2NDY2ZiJ9==";
+$encryptKey = "";
+$decryptKey = "";
 
-$msg = "1234567890";
+$msg = "RSA (Rivest–Shamir–Adleman) is one of the first practical public-key cryptosystems and is widely used for secure data transmission. In such a cryptosystem, the encryption key is public and it is different from the decryption key which is kept secret (private). ";
 
 echo("Message: " . $msg . "<br>");
 
-$enc = $rsa->encryptdecrypt($msg, $encryptKey);
+$enc = $rsa->Encrypt($msg, $encryptKey);
 
 
 echo "encrypted_message: " . $enc . "<br>";
 
-echo("decrypted_message: " . $rsa->encryptdecrypt($enc, $decryptKey));
+echo("decrypted_message: " . $rsa->Decrypt($enc, $decryptKey));
 
 */
 
