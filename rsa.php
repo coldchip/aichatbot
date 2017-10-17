@@ -324,8 +324,8 @@ function genkeys()
 <p class="text" style="float: left; margin-left: 20px; font-size: 20px; font-weight: 300; margin-top: 12px;">ColdChip RSA</p>
 </div>
 <div class="content">
-<textarea class="textarea" placeholder="Public Key. " id="pubkey"></textarea>
-<textarea class="textarea" placeholder="Private Key. " id="prikey"></textarea>
+<textarea class="textarea" placeholder="Public Key / Encryption Key. " id="pubkey"></textarea>
+<textarea class="textarea" placeholder="Private Key / Decryption Key. " id="prikey"></textarea>
 <textarea class="textarea" placeholder="Message. " id="msg"></textarea>
 <button class="button" onClick="encrypt()">Encrypt</button>
 <button class="button" onClick="decrypt()">Decrypt</button>
