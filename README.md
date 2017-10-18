@@ -1,7 +1,7 @@
-PHP RSA
+PHP AI CHATBOT
 ==========
 
-RSA dual key encryption in Pure PHP.
+PHP AI ChatBot in Pure PHP
 
 This script is distributed under the terms of the GNU General Public License (GPL)
 See http://www.gnu.org/licenses/gpl.txt for license details
