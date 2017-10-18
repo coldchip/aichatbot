@@ -177,7 +177,7 @@ if($_SERVER['REQUEST_METHOD'] == "POST")
 	
 	if($_POST["mode"] == "genkeys")
 	{
-		$rsa->generateKeys(1024);
+		$rsa->generateKeys(2048);
 		$packer = array();
 		$packer["pubkey"] = $rsa->publicKey;
 		$packer["prikey"] = $rsa->privateKey;
@@ -191,7 +191,7 @@ if($_SERVER['REQUEST_METHOD'] == "POST")
 <!DOCTYPE html>
 <html>
 <head>
-<title>ColdChip - Translate</title>
+<title>ColdChip - RSA</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />		
 <link rel="shortcut icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="/>
 <meta charset="utf-8">	
